@@ -1,6 +1,4 @@
-# rs-gcp-flask
-RS simple flask app
-# rsgcp-flask-api
+# rs=-gcp-flask
 
 This is a simple CRUD API built with Flask, Docker, and Terraform, deployed to Google Cloud Platform.
 
