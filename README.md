@@ -22,4 +22,4 @@ This is a simple CRUD API built with Flask, Docker, and Terraform, deployed to G
    git clone https://github.com/yourusername/rsgcp-flask-api.git
    cd rsgcp-flask-api
 
-![Implementation Diagram](.svg)
+![Implementation Diagram](rs-gcp-flask.svg)
