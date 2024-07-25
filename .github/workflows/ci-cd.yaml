@@ -20,19 +20,26 @@ jobs:
           service_account_key: ${{ secrets.RS_GCP_SA_KEY }}
           export_default_credentials: true
 
-      - name: Configure Docker for Artifact Registry
+      - name: Create Artifact Registry Repository
+        run: |
+          gcloud artifacts repositories create rs-flask-app \
+            --repository-format=docker \
+            --location=REGION \
+            --description="Repository for rs-flask-app Docker images" || echo "Repository already exists"
+
+      - name: Configure Docker
         run: gcloud auth configure-docker REGION-docker.pkg.dev
 
       - name: Build Docker image
-        run: docker build -t REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/your-repo/rs-gcp-flask:latest .
+        run: docker build -t REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/rs-flask-app/rs-gcp-flask:latest .
 
       - name: Push Docker image
-        run: docker push REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/your-repo/rs-gcp-flask:latest
+        run: docker push REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/rs-flask-app/rs-gcp-flask:latest
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy rs-gcp-flask \
-            --image REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/your-repo/rs-gcp-flask:latest \
+            --image REGION-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/rs-flask-app/rs-gcp-flask:latest \
             --region us-central1 \
             --platform managed \
             --allow-unauthenticated
