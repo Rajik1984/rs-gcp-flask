@@ -6,32 +6,35 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v0.2.0
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
-        version: 'latest'
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.RS_GCP_SA_KEY }}
+        python-version: '3.11'
 
-    - name: Configure Docker
+    - name: Install dependencies
       run: |
-        gcloud auth configure-docker
+        pip install -r requirements.txt
 
     - name: Build Docker image
       run: |
-        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask .
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/flask-app .
 
     - name: Push Docker image
       run: |
-        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask
+        echo ${{ secrets.GCP_SA_KEY }} | docker login -u _json_key --password-stdin https://gcr.io
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/flask-app
 
-    - name: Deploy to Cloud Run
+    - name: Deploy to Google Kubernetes Engine
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
       run: |
-        gcloud run deploy rs-gcp-flask --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask --platform managed --region ${{ secrets.GCP_REGION }} --allow-unauthenticated
+        gcloud container clusters get-credentials my-cluster --zone us-central1-a --project ${{ secrets.GCP_PROJECT_ID }}
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
