@@ -10,52 +10,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v0.2.1
-      with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
 
-    - name: Configure Docker
-      run: gcloud auth configure-docker
+      - name: Configure Docker
+        run: gcloud auth configure-docker
 
-    - name: Build Docker image
-      run: docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask:latest .
+      # Optional: Grant Docker permissions if running on self-hosted runners
+      - name: Ensure Docker permissions
+        if: runner.os == 'Linux'
+        run: |
+          sudo usermod -aG docker $USER
+          newgrp docker || true
 
-    - name: Push Docker image
-      run: docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask:latest
+      - name: Build Docker image
+        run: docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask:latest .
 
-    - name: Deploy to Cloud Run
-      run: |
-        gcloud run deploy rs-gcp-flask \
-          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask:latest \
-          --region us-central1 \
-          --platform managed \
-          --allow-unauthenticated
+      - name: Push Docker image
+        run: docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy rs-gcp-flask \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/rs-gcp-flask:latest \
+            --region us-central1 \
+            --platform managed \
+            --allow-unauthenticated
 
   terraform:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v0.2.1
-      with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
 
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v1
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
 
-    - name: Terraform Init
-      run: terraform -chdir=terraform init
+      - name: Terraform Init
+        run: terraform -chdir=terraform init
 
-    - name: Terraform Apply
-      run: terraform -chdir=terraform apply -auto-approve
+      - name: Terraform Apply
+        run: terraform -chdir=terraform apply -auto-approve
+
